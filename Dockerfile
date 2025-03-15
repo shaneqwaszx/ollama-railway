@@ -1,12 +1,21 @@
+# Dockerfile at the root of your repo
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y curl
-WORKDIR /app
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl build-essential git cmake libssl-dev pkg-config ca-certificates
 
-# Download a precompiled Ollama release (example link, adjust version/URL)
-RUN curl -L -o ollama.tar.gz "https://github.com/jmorganca/ollama/releases/download/v1.0.0/ollama-linux-x86_64.tar.gz"
-RUN tar -xzf ollama.tar.gz -C /app
-RUN rm ollama.tar.gz
+# Install Go
+RUN curl -OL https://go.dev/dl/go1.20.3.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz \
+    && rm go1.20.3.linux-amd64.tar.gz
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Clone the Ollama repo (with submodules if any)
+RUN git clone --recursive https://github.com/jmorganca/ollama.git /ollama-source
+
+WORKDIR /ollama-source
+RUN make
 
 EXPOSE 11434
-CMD ["./ollama", "serve", "--port", "0.0.0.0:${PORT}"]
+CMD ["./bin/ollama", "serve", "--port", "0.0.0.0:${PORT}"]
