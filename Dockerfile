@@ -1,21 +1,19 @@
-# Dockerfile at the root of your repo
 FROM ubuntu:22.04
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    curl build-essential git cmake libssl-dev pkg-config ca-certificates
+# Minimal dependencies
+RUN apt-get update && apt-get install -y curl
 
-# Install Go
-RUN curl -OL https://go.dev/dl/go1.20.3.linux-amd64.tar.gz \
-    && tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz \
-    && rm go1.20.3.linux-amd64.tar.gz
-ENV PATH="/usr/local/go/bin:${PATH}"
+# Create a working directory
+WORKDIR /app
 
-# Clone the Ollama repo (with submodules if any)
-RUN git clone --recursive https://github.com/jmorganca/ollama.git /ollama-source
+# 1) Download a prebuilt Ollama binary (skip building from source).
+#    Replace with the correct link if there's an official release for Linux x86_64.
+RUN curl -L -o ollama.tar.gz "https://github.com/jmorganca/ollama/releases/download/v0.0.0/ollama-linux-x86_64.tar.gz"
+RUN tar -xzf ollama.tar.gz -C /app
+RUN rm ollama.tar.gz
 
-WORKDIR /ollama-source
-RUN make
-
+# Expose port for Ollama. We'll map it to $PORT on Railway.
 EXPOSE 11434
-CMD ["./bin/ollama", "serve", "--port", "0.0.0.0:${PORT}"]
+
+# 2) Start Ollama server with qwen2.5:0.5b model
+CMD ["./ollama", "serve", "--model", "qwen2.5:0.5b", "--port", "0.0.0.0:${PORT}"]
